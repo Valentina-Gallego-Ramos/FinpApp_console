@@ -1,0 +1,166 @@
+@startuml
+
+' ============== DOMINIO (Clases de negocio) ==============
+package "edu.ubicua.logica" {
+  class CategoriaGasto {
+    -int codCategoriaGasto
+    -String nombre
+    -String tipo
+    +CategoriaGasto(String, String)
+    +CategoriaGasto(int, String, String)
+    +getters()
+    +setters()
+  }
+  
+  class Movimiento {
+    -int codMovimiento
+    -String tipo
+    -double monto
+    -LocalDate fecha
+    -String descripcion
+    -CategoriaGasto categoria
+    +Movimiento(String, double, LocalDate, CategoriaGasto, String)
+    +getters()
+    +setters()
+  }
+  
+  class PresupuestoMensual {
+    -int codPresupuestoMensual
+    -int anio
+    -int mes
+    -double montoTotal
+    +PresupuestoMensual(int, int, double)
+    +getters()
+    +setters()
+  }
+  
+  class ResumenMensual <<DTO>> {
+    -int anio
+    -int mes
+    -double totalIngresos
+    -double totalGastos
+    -double saldo
+    -Double presupuestoMensual
+    -Map<String, Double> gastosPorCategoria
+    +ResumenMensual(int, int, double, double, double, Double, Map)
+    +getters()
+    +setters()
+  }
+}
+
+' ============== REPOSITORIOS (Interfaces) ==============
+package "edu.ubicua.repositorio" {
+  interface CategoriaRepository {
+    +guardar(CategoriaGasto): CategoriaGasto
+    +obtenerTodas(): List<CategoriaGasto>
+    +buscarPorId(int): Optional<CategoriaGasto>
+  }
+  
+  interface MovimientoRepository {
+    +guardar(Movimiento): Movimiento
+    +obtenerTodos(): List<Movimiento>
+    +buscarPorRangoFecha(LocalDate, LocalDate): List<Movimiento>
+  }
+  
+  interface PresupuestoRepository {
+    +guardar(PresupuestoMensual): PresupuestoMensual
+    +buscarPorAnioYMes(int, int): Optional<PresupuestoMensual>
+  }
+}
+
+' ============== IMPLEMENTACIONES EN MEMORIA ==============
+package "edu.ubicua.repositorio.memoria" {
+  class CategoriaRepositoryInMemory {
+    -List<CategoriaGasto> categorias
+    -int secuenciaId
+    +guardar(CategoriaGasto): CategoriaGasto
+    +obtenerTodas(): List<CategoriaGasto>
+    +buscarPorId(int): Optional<CategoriaGasto>
+  }
+  
+  class MovimientoRepositoryInMemory {
+    -List<Movimiento> movimientos
+    -int secuenciaId
+    +guardar(Movimiento): Movimiento
+    +obtenerTodos(): List<Movimiento>
+    +buscarPorRangoFecha(LocalDate, LocalDate): List<Movimiento>
+  }
+  
+  class PresupuestoRepositoryInMemory {
+    -List<PresupuestoMensual> presupuestos
+    -int secuenciaId
+    +guardar(PresupuestoMensual): PresupuestoMensual
+    +buscarPorAnioYMes(int, int): Optional<PresupuestoMensual>
+  }
+}
+
+' ============== SERVICIO (Lógica de negocio) ==============
+package "edu.ubicua.servicio" {
+  class FinanzasService {
+    -CategoriaRepository categoriaRepo
+    -MovimientoRepository movimientoRepo
+    -PresupuestoRepository presupuestoRepo
+    +FinanzasService(CategoriaRepository, MovimientoRepository, PresupuestoRepository)
+    +registrarCategoria(String, String): void
+    +registrarMovimiento(String, double, LocalDate, int, String): void
+    +configurarPresupuestoMensual(int, int, double): void
+    +obtenerResumenMensual(int, int): ResumenMensual
+    +listarMovimientosDeMes(int, int): List<Movimiento>
+    +listarTodasCategorias(): List<CategoriaGasto>
+  }
+}
+
+' ============== UI (Interfaz de usuario) ==============
+package "edu.ubicua.ui" {
+  class MenuConsola {
+    -FinanzasService service
+    -Scanner teclado
+    +MenuConsola(FinanzasService)
+    +iniciar(): void
+    -mostrarMenu(): void
+    -registrarCategoria(): void
+    -registrarMovimiento(): void
+    -listarMovimientos(): void
+    -verResumenMensual(): void
+    -configurarPresupuesto(): void
+  }
+}
+
+' ============== APP (Punto de entrada) ==============
+package "edu.ubicua.codigo" {
+  class App {
+    +{static} main(String[]): void
+  }
+}
+
+' ============== RELACIONES ==============
+
+' Dominio
+Movimiento --> CategoriaGasto : usa
+
+' Servicio usa repositorios
+FinanzasService --> CategoriaRepository : usa
+FinanzasService --> MovimientoRepository : usa
+FinanzasService --> PresupuestoRepository : usa
+
+' Servicio devuelve ResumenMensual
+FinanzasService ..> ResumenMensual : crea
+
+' Implementaciones de interfaces
+CategoriaRepositoryInMemory ..|> CategoriaRepository : implementa
+MovimientoRepositoryInMemory ..|> MovimientoRepository : implementa
+PresupuestoRepositoryInMemory ..|> PresupuestoRepository : implementa
+
+' UI usa servicio
+MenuConsola --> FinanzasService : usa
+
+' App crea todo
+App --> MenuConsola : crea
+App ..> FinanzasService : crea
+App ..> CategoriaRepositoryInMemory : crea
+App ..> MovimientoRepositoryInMemory : crea
+App ..> PresupuestoRepositoryInMemory : crea
+
+@enduml
+
+
